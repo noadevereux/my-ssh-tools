@@ -1,0 +1,10 @@
+Package: my-ssh-tools
+Version: 1.0.1
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: fzf
+Maintainer: Dmitriy Medvedev <medvedevdmitry21@gmail.com>
+Description: SSH helper tools
+ This package provides ssh-menu (a quick SSH/SFTP launcher)
+ and ssh-add-host (to safely add new Host entries to ~/.ssh/config).

@@ -1,0 +1,3 @@
+*.deb
+/dist/usr/local/bin/*
+!/dist/usr/local/bin/.gitkeep

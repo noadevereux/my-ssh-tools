@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -65,15 +65,6 @@ jobs:
           go build -o bin/ssh-menu-arm64 src/ssh-menu.go
           go build -o bin/ssh-add-host-arm64 src/ssh-add-host.go
       
-      - name: Build binaries for Windows
-        if: matrix.os == 'windows-latest'
-        env:
-          GOOS: windows
-          GOARCH: amd64
-        run: |
-          go build -o bin/ssh-menu.exe src/ssh-menu.go
-          go build -o bin/ssh-add-host.exe src/ssh-add-host.go
-      
       - name: Create dist directory
         run: mkdir dist
 
@@ -124,60 +115,6 @@ jobs:
             -ov -format UDZO my-ssh-tools-${GITHUB_REF##*/}-arm64.dmg
           cd ../
           rm -rf dist/my-ssh-tools
-      
-      - name: Prepare Windows NSIS
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install nsis
-          mkdir dist/my-ssh-tools
-          $content = @"
-          !define APPNAME "My SSH Tools"
-          !define APPVERSION "${GITHUB_REF##*/v}"
-          !define PUBLISHER "Dmitriy Medvedev"
-
-          OutFile "setup.exe"
-
-          InstallDir "$PROGRAMFILES\${APPNAME}"
-
-          RequestExecutionLevel admin
-
-          Page directory
-          Page instfiles
-          UninstPage uninstConfirm
-          UninstPage instfiles
-
-          Section "Install"
-            SetOutPath "$INSTDIR"
-
-            File "ssh-menu.exe"
-            File "ssh-add-host.exe"
-
-            WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path" "$INSTDIR;$%PATH%"
-
-            SendMessage 0xFFFF 0x001A 0 "STR:Environment"
-
-            WriteUninstaller "$INSTDIR\Uninstall.exe"
-          SectionEnd
-
-          Section "Uninstall"
-            Delete "$INSTDIR\ssh-menu.exe"
-            Delete "$INSTDIR\ssh-add-host.exe"
-            Delete "$INSTDIR\Uninstall.exe"
-
-            RMDir "$INSTDIR"
-          SectionEnd
-          "@
-          Set-Content -Path "dist/my-ssh-tools/installer.nsi" -Value $content
-      
-      - name: Build package for Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          cp bin/ssh-menu.exe dist/my-ssh-tools/
-          cp bin/ssh-add-host.exe dist/my-ssh-tools/
-          cd dist/my-ssh-tools/
-          & 'C:\Program Files (x86)\NSIS\makensis.exe' installer.nsi
-          cd ../../
-          mv dist/my-ssh-tools/setup.exe dist/my-ssh-tools-${GITHUB_REF##*/}-amd64.exe
 
       - name: Upload artifacts for Linux
         uses: actions/upload-artifact@v4
@@ -196,14 +133,6 @@ jobs:
           name: macos-packages
           path: |
             dist/*.dmg
-
-      - name: Upload artifacts for Windows
-        uses: actions/upload-artifact@v4
-        if: matrix.os == 'windows-latest'
-        with:
-          name: windows-packages
-          path: |
-            dist/*.exe
 
   release:
     needs: build
@@ -224,12 +153,6 @@ jobs:
           name: macos-packages
           path: ./
 
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: windows-packages
-          path: ./
-
       - name: List files
         run: ls -la
 
@@ -241,4 +164,3 @@ jobs:
             *.deb
             *.rpm
             *.dmg
-            *.exe
